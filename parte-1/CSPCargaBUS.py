@@ -46,18 +46,6 @@ class Student(id, year, troublesome, red_mobility, id_sibling):
 # AUX FUNCTIONS
 # ---
 
-def parser(path: str) -> tuple:
-    '''
-    Parses the input file specified in path and returns a tuple
-    of Student classes
-    '''
-    data = []
-
-    # TODO: parser
-
-    pass
-
-    return tuple(data)
 
 
 def are_adjacent(a: int, b: int) -> bool:
@@ -129,6 +117,85 @@ def next_seat_free(s: int, r: int) -> bool:
 
 
 # ---
+# MAIN FUNCTIONS
+# ---
+
+def parser(path: str) -> tuple:
+    '''
+    Parses the input file specified in path and returns a tuple
+    of Student classes
+    '''
+    data = []
+
+    # TODO: parser
+
+    pass
+
+    return tuple(data)
+
+
+def putVariables(data: tuple, problem: Problem):
+    '''
+    Adds the variables to the problem, using the data
+    '''
+
+    # TODO: variables
+
+    pass
+
+
+def putConstraints(data: tuple, problem: Problem):
+    '''
+    Adds the constraints to the problem, using the data
+    '''
+
+    # Each student has one and only one seat assigned
+    problem.addConstraint(AllDifferentConstraint())
+    
+    for i in data:
+
+        # If there are students with reduced mobility, they will have to sit on seats designated for this purpose
+        if i.red_mobility:
+            problem.addConstraint(in_blue, (str(i)))
+
+        # First year students must use seats in the front of the bus
+        if i.year == 1:
+            problem.addConstraint(in_front, str(i))
+
+        # Second year students must use seats in the back of the bus
+        if i.year == 2:
+            problem.addConstraint(in_back, str(i))
+
+            for j in data:
+
+                # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility
+                if (i.troublesome or i.red_mobility) and j.troublesome:
+                    problem.addConstraint(not_close, (str(i), str(j)))
+
+                # If there are students with reduced mobility, the seat right next to them has to be empty.
+                if i.red_mobility and (i != j):
+                    problem.addConstraint(next_seat_free, (str(i), str(j)))
+
+                # If two students are siblings they must be seated next to each other
+                if (i.id_sibling != 0) and (i.id_sibling == j.id):
+                    problem.addConstraint(are_adjacent, (str(i), str(j)))
+
+
+def solver(problem: Problem):
+    '''
+    Solves the problem and prints out the solutions
+    '''
+
+    sols = problem.getSolutions()
+    sol = sols[0]
+
+    out_path = sys.argv[1].split("/")[-1] + ".out"
+    # print("Number of solutions:", len(sols))
+    # print("One solution:\n", sol)
+
+    # TODO: Write to file
+
+# ---
 # MAIN
 # ---
 
@@ -138,54 +205,11 @@ def main():
 
     problem = Problem()
 
-    # VARIABLES
+    putVariables(data, problem)
 
-    # TODO: variables
+    putConstraints(data, problem)
 
-
-    # CONSTRAINTS
-
-    # Each student has one and only one seat assigned
-    problem.addConstraint(AllDifferentConstraint())
-    
-    # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility
-    for i in data:
-        if i.troublesome or i.red_mobility:
-            for j in data:
-                if j.troublesome:
-                    problem.addConstraint(not_close, (str(i), str(j)))
-
-    # If there are students with reduced mobility, they will have to sit on seats designated for this purpose
-    for i in data:
-        if i.red_mobility:
-            problem.addConstraint(in_blue, (str(i)))
-
-    # If there are students with reduced mobility, the seat right next to them has to be empty.
-    for i in data:
-        if i.red_mobility:
-            for j in data:
-                if i != j:
-                    problem.addConstraint(next_seat_free, (str(i), str(j)))
-
-    # First year students must use seats in the front of the bus
-    for i in data:
-        if i.year == 1:
-            problem.addConstraint(in_front, )
-
-    # If two students are siblings they must be seated next to each other
-    for i in data:
-        if i.id_sibling != 0:
-            for j in data:
-                if i.id_sibling == j.id:
-                    problem.addConstraint(are_adjacent, (str(i), str(j)))
-
-
-    # SOLUTIONS
-
-    sols = problem.getSolutions()
-    print("Number of solutions:", len(sols))
-    sol = problem.getSolution()
-    print("One solution:\n", sol)
+    solver(problem)
 
 
 if __name__ == "__main__":
