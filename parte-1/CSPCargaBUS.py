@@ -165,6 +165,10 @@ def putConstraints(data: tuple, problem: Problem):
         # Second year students must use seats in the back of the bus
         if i.year == 2:
             problem.addConstraint(in_back, str(i))
+        
+        # If two students are siblings they must be seated next to each other
+        if (i.id_sibling != 0):
+            problem.addConstraint(are_adjacent, (str(i), str(data[id_sibling - 1])))
 
             for j in data:
 
@@ -176,9 +180,6 @@ def putConstraints(data: tuple, problem: Problem):
                 if i.red_mobility and (i != j):
                     problem.addConstraint(next_seat_free, (str(i), str(j)))
 
-                # If two students are siblings they must be seated next to each other
-                if (i.id_sibling != 0) and (i.id_sibling == j.id):
-                    problem.addConstraint(are_adjacent, (str(i), str(j)))
 
 
 def solver(problem: Problem):
