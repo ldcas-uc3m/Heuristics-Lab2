@@ -1,1 +1,0 @@
-python CSPCargaBUS.py ./CSP-tests/students1
