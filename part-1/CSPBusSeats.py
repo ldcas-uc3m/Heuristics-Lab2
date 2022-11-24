@@ -71,7 +71,7 @@ def in_row(seat1: int, seat2: int) -> bool:
     return ((seat1 - 1) // 4) == ((seat2 - 1) // 4)
 
 
-def neighbors(seat) -> tuple:
+def neighbors(seat: int) -> tuple:
     '''
     Returns a list of all neighboring seats of seat
     '''
@@ -112,6 +112,12 @@ def neighbors(seat) -> tuple:
     return tuple(neighboring_seats)
 
 
+def in_aisle(seat: int) -> bool:
+    '''
+    Checks if a seat is in the aisle
+    '''
+    return (seat - 1) % 4 in (1, 2)
+
 
 # ---
 # CONSTRAINT FUNCTIONS
@@ -130,6 +136,12 @@ def next_seat_free(s: int, r: int) -> bool:
     '''
     return not are_adjacent(r, s)
 
+
+def next_in_aisle(s: int, t: int) -> bool:
+    '''
+    Check if seat t is next to s and in the aisle
+    '''
+    return are_adjacent(s, t) and in_aisle(t)
 
 
 # ---
@@ -150,7 +162,6 @@ def parser(path: str) -> tuple:
             # make a tuple of characteristics per student by splitting the line by commas, and if characteristic is a number, convert it to an int
             student_data = [int(x) if x.isdigit() else x for x in line.split(",")]
             data.append(Student(student_data[0], student_data[1], student_data[2], student_data[3], student_data[4]))
-
 
     return tuple(data)
 
@@ -192,8 +203,8 @@ def putVariables(data: tuple, problem: Problem):
         if student.red_mobility:
             # must seat in the corresponding area (front or back), in the blue seats
             domain = [seat for seat in domain if seat in domain_blue]
-            print(student.year, domain)
         
+        problem.addVariable(str(student), domain)
 
 def putConstraints(data: tuple, problem: Problem):
     '''
@@ -208,6 +219,13 @@ def putConstraints(data: tuple, problem: Problem):
         if (student.id_sibling != 0):
             sibling = data[student.id_sibling - 1]
             problem.addConstraint(are_adjacent, (str(student), str(sibling)))
+
+            # If siblings are on different years, the older brother has to be assigned the seat closer to the aisle.
+            if student.year > sibling.year:
+                problem.addConstraint(next_in_aisle, (str(student), str(sibling)))
+            elif student.year < student.year:
+                problem.addConstraint(next_in_aisle, (str(sibling), str(student)))
+
             for student2 in data:
                 # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility
                 if (student.troublesome or student.red_mobility) and student2.troublesome:
@@ -217,7 +235,6 @@ def putConstraints(data: tuple, problem: Problem):
                 if (student.red_mobility and (student.id != student2.id)):
                     problem.addConstraint(next_seat_free, (str(student), str(student2)))
                 
-                # TODO: If siblings are on different years, and the older brother has to be assigned the seat closer to the aisle.
 
 def solver(problem: Problem, output_file_name: str):
     '''
