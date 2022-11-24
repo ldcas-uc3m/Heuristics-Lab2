@@ -49,11 +49,13 @@ def front_row(seat: int) -> bool:
     '''
     return seat in range(1, 5)
 
+
 def back_row(seat: int) -> bool:
     '''
     Check if seat is in the back row
     '''
     return seat in range(29, 33)
+
 
 def are_adjacent(seat1: int, seat2: int) -> bool:
     '''
@@ -68,37 +70,53 @@ def in_row(seat1: int, seat2: int) -> bool:
     '''
     return ((seat1 - 1) // 4) == ((seat2 - 1) // 4)
 
-def neighbors(seat) -> list:
+
+def neighbors(seat) -> tuple:
     '''
-    Returns a list of all neighboring seats of sit a
+    Returns a list of all neighboring seats of seat
     '''
+
     neighboring_seats = []
 
-    if in_row(seat, seat + 1):
-        neighboring_seats.append(seat + 1)
+    # add front row seats
+    if (seat - 1) // 4 > 0:  # seat is not on the first row
+        # add seat in front
+        neighboring_seats.append(seat - 4)
+        # add the top-left seat, if there is one
+        if in_row(seat - 4, seat - 5):
+            neighboring_seats.append(seat - 5)
+        # add the top-right seat, if there is one
+        if in_row(seat - 4, seat - 3):
+            neighboring_seats.append(seat - 3)
+    
+    # add same left seat, if there is one
     if in_row(seat, seat - 1):
         neighboring_seats.append(seat - 1)
-    
-    if front_row(seat):
-        if in_row(seat-4, seat - 5):
-            neighboring_seats.append(seat - 5)
-            neighboring_seats.append(seat - 4)
-        if in_row(seat-4, seat - 3):
-            neighboring_seats.append(seat - 3)
+        
+    # add same right seat, if there is one
+    if in_row(seat, seat + 1):
+        neighboring_seats.append(seat + 1)
 
-    if back_row(seat):
+    # add back row seats
+    if (seat - 1) // 4 < 7:  # seat is not on the last row
+        # add seat in back
+        neighboring_seats.append(seat + 4)
+        # add the bottom-left seat, if there is one
         if in_row(seat + 4, seat + 3):
             neighboring_seats.append(seat + 3)
-            neighboring_seats.append(seat + 4)
+        # add the bottom-right seat, if there is one
         if in_row(seat + 4, seat + 5):
             neighboring_seats.append(seat + 5)
+    
 
-    return neighboring_seats
+    return tuple(neighboring_seats)
+
 
 
 # ---
 # CONSTRAINT FUNCTIONS
 # --- 
+
 def not_close(s: int, t: int) -> bool:
     '''
     Check if seat s is surrounding seat t
@@ -123,36 +141,46 @@ def parser(path: str) -> tuple:
     Parses the input file specified in path and returns a tuple
     of Student classes
     '''
+
     data = []
+
     with open(path, "r") as f:
         for line in f:
             line = line.strip('\n')
-            #make a tuple of characteristics per student by splitting the line by commas, and if characteristic is a number, convert it to an int
+            # make a tuple of characteristics per student by splitting the line by commas, and if characteristic is a number, convert it to an int
             student_data = [int(x) if x.isdigit() else x for x in line.split(",")]
             data.append(Student(student_data[0], student_data[1], student_data[2], student_data[3], student_data[4]))
+
+
     return tuple(data)
 
 
 def putVariables(data: tuple, problem: Problem):
     '''
-    Adds the variables to the problem, using the data
+    Adds the variables to the problem, using the data.
+    We constraint the domain (possible seats) depending on the
+    student's data.
     '''
+
     domain = [i for i in range(1, 33)]
     domain_front = [i for i in range(1, 17)]
     domain_back = [i for i in range(17, 33)]
     domain_blue = [i for i in range(1, 5)] + [i for i in range(13, 21)]
 
     for student in data:
-        if student.id_sibling != 0:
+        # siblings
+        if student.id_sibling != 0: 
             sibling = data[student.id_sibling - 1]
-            if sibling.year != student.year:
+            if sibling.year != student.year:  # siblings in different years
                 domain = domain_front
-            if sibling.red_mobility: 
+            if sibling.red_mobility:
+                # the other sibling must seat in the same area (front or back)
                 match sibling.year:
                     case 1:
                         domain = domain_front
                     case 2:
                         domain = domain_back
+        # years
         else:
             match student.year:
                 case 1:
@@ -160,11 +188,11 @@ def putVariables(data: tuple, problem: Problem):
                 case 2:
                     domain = domain_back
 
+        # reduced mobility
         if student.red_mobility:
-            domain = domain_blue
-            
-        problem.addVariable(str(student), domain)
-
+            # must seat in the corresponding area (front or back), in the blue seats
+            domain = [seat for seat in domain if seat in domain_blue]
+            print(student.year, domain)
         
 
 def putConstraints(data: tuple, problem: Problem):
@@ -175,23 +203,23 @@ def putConstraints(data: tuple, problem: Problem):
     # Each student has one and only one seat assigned
     problem.addConstraint(AllDifferentConstraint())
     
-    # If two students are siblings they must be seated next to each other
     for student in data:
-        sibling = data[student.id_sibling - 1]
+        # If two students are siblings they must be seated next to each other
         if (student.id_sibling != 0):
-                problem.addConstraint(are_adjacent, (str(student),  str(sibling)))
-                for student2 in data:
-                    # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility
-                    if (student.troublesome or student.red_mobility) and student2.troublesome:
-                        problem.addConstraint(not_close, (str(student), str(student2)))
+            sibling = data[student.id_sibling - 1]
+            problem.addConstraint(are_adjacent, (str(student), str(sibling)))
+            for student2 in data:
+                # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility
+                if (student.troublesome or student.red_mobility) and student2.troublesome:
+                    problem.addConstraint(not_close, (str(student), str(student2)))
 
-                    # If there are students with reduced mobility, the seat right next to them has to be empty.
-                    if (student.red_mobility and (student.id != student2.id)):
-                        problem.addConstraint(next_seat_free, (str(student), str(student2)))
-                    
+                # If there are students with reduced mobility, the seat right next to them has to be empty.
+                if (student.red_mobility and (student.id != student2.id)):
+                    problem.addConstraint(next_seat_free, (str(student), str(student2)))
+                
+                # TODO: If siblings are on different years, and the older brother has to be assigned the seat closer to the aisle.
 
 def solver(problem: Problem, output_file_name: str):
-
     '''
     Solves the problem and writes out the solutions
     '''
@@ -200,7 +228,6 @@ def solver(problem: Problem, output_file_name: str):
     with open(output_file_name, "w") as f:
         f.write("Number of solutions: " + str(len(sols)) + "\n")
         for i in range(0,3):
-            print(str(sols[i]) + "\n")
             f.write(str(sols[i]) + "\n")
         f.close()
 
@@ -211,16 +238,20 @@ def solver(problem: Problem, output_file_name: str):
 
 def main():
 
+    print("Reading", sys.argv[1], "\b...")
     data = parser(sys.argv[1])
 
     problem = Problem()
 
+    print("Adding variables...")
     putVariables(data, problem)
 
+    print("Adding constraints...")
     putConstraints(data, problem)
 
     output_file_name = sys.argv[1] + ".out"
 
+    print("Getting solutions...")
     solver(problem, output_file_name)
 
 
