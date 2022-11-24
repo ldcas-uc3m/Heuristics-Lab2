@@ -1,1 +1,1 @@
-python CSPBusSeats.py ./CSP-tests/students1
+python CSPCargaBUS.py ./CSP-tests/students1

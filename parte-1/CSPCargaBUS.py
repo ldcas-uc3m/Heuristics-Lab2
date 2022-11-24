@@ -1,16 +1,21 @@
-from constraint import *
 import sys
+from constraint import *
 
 
-DOMAIN = (i for i in range(1, 33))
+
+DOMAIN =  (i for i in range(1, 33))
+DOMAIN_FRONT = (i for i in range(1, 17))
+DOMAIN_BACK = (i for i in range(17, 33))
+DOMAIN_BLUE = (i for i in (range(1, 4), range(13,20)))
 
 
-class Student(id, year, troublesome, red_mobility, id_sibling):
+
+class Student(object):
     '''
     Student definition
     '''
 
-    def __init__(self):
+    def __init__(self, id, year, troublesome, red_mobility, id_sibling):
         self.id = id
 
         if year not in (1, 2): raise ValueError
@@ -42,44 +47,71 @@ class Student(id, year, troublesome, red_mobility, id_sibling):
         return string
 
 
+
 # ---
 # AUX FUNCTIONS
 # ---
 
 
+def front_row(seat: int) -> bool:
+    '''
+    Check if seat is in the front row
+    '''
+    return seat in range(1, 5)
 
-def are_adjacent(a: int, b: int) -> bool:
+def back_row(seat: int) -> bool:
+    '''
+    Check if seat is in the back row
+    '''
+    return seat in range(29, 33)
+
+def are_adjacent(seat1: int, seat2: int) -> bool:
     '''
     Returns True if seats a and b are adjacent, else False
     '''
-    # TODO: double check the math
-    return (abs(a - b) == 1) and (((a - 1) // 4) == ((b - 1) // 4)) and ((a % 4) * (b % 4) != 6)
+    return (abs(seat1 - seat2) == 1) and (((seat1 - 1) // 4) == ((seat2 - 1) // 4)) and ((seat1 % 4) * (seat2 % 4) != 6)
 
 
-def in_row(a: int, b: int) -> bool:
+def in_row(seat1: int, seat2: int) -> bool:
     '''
     Returns True if a and b are in the same row, else False
     '''
-    # TODO: double check the math
-    return ((a - 1) // 4) == ((b - 1) // 4)
+    return ((seat1 - 1) // 4) == ((seat2 - 1) // 4)
 
 
-def surroundings(s) -> list:
+
+
+def neighbors(seat) -> list:
     '''
-    Returns a list of all seats surrounding seat s
+    Returns a list of all neighboring seats of sit a
     '''
-    seats = []
+    neighboring_seats = []
 
-    # TODO: surroundings
+    if in_row(seat, seat + 1):
+        neighboring_seats.append(seat + 1)
+    if in_row(seat, seat - 1):
+        neighboring_seats.append(seat - 1)
+    
+    if front_row(seat):
+        if in_row(seat-4, seat - 5):
+            neighboring_seats.append(seat - 5)
+            neighboring_seats.append(seat - 4)
+        if in_row(seat-4, seat - 3):
+            neighboring_seats.append(seat - 3)
 
-    pass
+    if back_row(seat):
+        if in_row(seat + 4, seat + 3):
+            neighboring_seats.append(seat + 3)
+            neighboring_seats.append(seat + 4)
+        if in_row(seat + 4, seat + 5):
+            neighboring_seats.append(seat + 5)
 
-    return seats
+    return neighboring_seats
 
 
 # ---
 # CONSTRAINT FUNCTIONS
-# ---
+# --- 
 
 def in_front(s: int) -> bool:
     '''
@@ -106,7 +138,7 @@ def not_close(s: int, t: int) -> bool:
     '''
     Check if seat s is surrounding seat t
     '''
-    return s not in surroundings(t)
+    return s not in neighbors(t)
 
 
 def next_seat_free(s: int, r: int) -> bool:
@@ -114,6 +146,7 @@ def next_seat_free(s: int, r: int) -> bool:
     Check if seat s is empty next to seat t
     '''
     return not are_adjacent(r, s)
+
 
 
 # ---
@@ -126,11 +159,14 @@ def parser(path: str) -> tuple:
     of Student classes
     '''
     data = []
-
-    # TODO: parser
-
-    pass
-
+    with open(path, "r") as f:
+        for line in f:
+            identity = int(line.split(",")[0])
+            year = int(line.split(",")[1])
+            troublesome = line.split(",")[2]
+            red_mobility = line.split(",")[3]
+            id_sibling = int(line.split(",")[4])
+            data.append(Student(identity, year, troublesome, red_mobility, id_sibling))
     return tuple(data)
 
 
@@ -138,10 +174,28 @@ def putVariables(data: tuple, problem: Problem):
     '''
     Adds the variables to the problem, using the data
     '''
-
-    # TODO: variables
-
-    pass
+    for student in data:
+        domain = DOMAIN
+        if student.id_sibling != 0:
+            sibling_pos = student.id_sibling
+            if data[sibling_pos].year != student.year:
+                domain = DOMAIN_FRONT 
+            if data[sibling_pos].red_mobility:
+                match data[sibling_pos]:
+                    case 1:
+                        domain = DOMAIN_FRONT
+                    case 2:
+                        domain = DOMAIN_BACK
+        else:
+            match student.year:
+                case 1:
+                    domain = DOMAIN_FRONT
+                case 2:
+                    domain = DOMAIN_BACK
+        if student.red_mobility:
+            domain = [value for value in DOMAIN if value in DOMAIN_BLUE]
+        
+        problem.addVariable(student.id, domain)              
 
 
 def putConstraints(data: tuple, problem: Problem):
@@ -191,10 +245,11 @@ def solver(problem: Problem):
     sol = sols[0]
 
     out_path = sys.argv[1].split("/")[-1] + ".out"
-    # print("Number of solutions:", len(sols))
-    # print("One solution:\n", sol)
+    print("Number of solutions:", len(sols))
+    print("One solution:\n", sol)
 
     # TODO: Write to file
+
 
 # ---
 # MAIN
