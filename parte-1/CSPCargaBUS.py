@@ -99,8 +99,6 @@ def neighbors(seat) -> list:
 # ---
 # CONSTRAINT FUNCTIONS
 # --- 
-
-
 def not_close(s: int, t: int) -> bool:
     '''
     Check if seat s is surrounding seat t
@@ -120,23 +118,22 @@ def next_seat_free(s: int, r: int) -> bool:
 # MAIN FUNCTIONS
 # ---
 
-def parser(path: str) -> list:
+def parser(path: str) -> tuple:
     '''
-    Parses the input file specified in path and returns a list
+    Parses the input file specified in path and returns a tuple
     of Student classes
     '''
     data = []
     with open(path, "r") as f:
         for line in f:
             line = line.strip('\n')
-            #make a list of characteristics per student by splitting the line by commas, and if characteristic is a number, convert it to an int
+            #make a tuple of characteristics per student by splitting the line by commas, and if characteristic is a number, convert it to an int
             student_data = [int(x) if x.isdigit() else x for x in line.split(",")]
-            data.append(student_data)
-    print(data)
-    return data
+            data.append(Student(student_data[0], student_data[1], student_data[2], student_data[3], student_data[4]))
+    return tuple(data)
 
 
-def putVariables(data: list, problem: Problem):
+def putVariables(data: tuple, problem: Problem):
     '''
     Adds the variables to the problem, using the data
     '''
@@ -145,30 +142,33 @@ def putVariables(data: list, problem: Problem):
     domain_back = [i for i in range(17, 33)]
     domain_blue = [i for i in range(1, 5)] + [i for i in range(13, 21)]
 
-    for student in range(0, len(data)):
-        if data[student][4] != 0:
-            if data[data[student][4]][1] != data[student][1]:
+    for student in data:
+        print(str(student))
+        if student.id_sibling != 0:
+            sibling = data[student.id_sibling - 1]
+            print("Student " + str(student.id) + " has sibling " + str(sibling.id))
+            if sibling.year != student.year:
                 domain = domain_front
-            if data[data[student][4]][3] == "R": 
-                match data[data[student][4]][1]:
+            if sibling.red_mobility: 
+                match sibling.year:
                     case 1:
                         domain = domain_front
                     case 2:
                         domain = domain_back
         else:
-            match data[student][1]:
+            match student.year:
                 case 1:
                     domain = domain_front
                 case 2:
                     domain = domain_back
-        if data[student][3] == "R":
+        if student.red_mobility:
             domain = domain_blue
             
-        problem.addVariable(data[student][0], domain)
+        problem.addVariable(str(student), domain)
 
         
 
-def putConstraints(data: list, problem: Problem):
+def putConstraints(data: tuple, problem: Problem):
     '''
     Adds the constraints to the problem, using the data         
     '''
@@ -177,17 +177,18 @@ def putConstraints(data: list, problem: Problem):
     problem.addConstraint(AllDifferentConstraint())
     
     # If two students are siblings they must be seated next to each other
-    for student in range(0, len(data)):
-        if (data[student][4] != 0):
-                problem.addConstraint(are_adjacent, (data[student][0],  data[data[student][4] - 1][0]))
-                for student2 in range(0, len(data)):
+    for student in data:
+        sibling = data[student.id_sibling - 1]
+        if (student.id_sibling != 0):
+                problem.addConstraint(are_adjacent, (str(student),  str(sibling)))
+                for student2 in data:
                     # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility
-                    if (data[student][2] == 'C' or data[student][3] == 'R') and data[student2][2] == 'C':
-                        problem.addConstraint(not_close, (data[student][0],data[student2][0]))
+                    if (student.troublesome or student.red_mobility) and student2.troublesome:
+                        problem.addConstraint(not_close, (str(student), str(student2)))
 
                     # If there are students with reduced mobility, the seat right next to them has to be empty.
-                    if ((data[student][3] == 'R') and (data[student][0] != data[student2][0])):
-                        problem.addConstraint(next_seat_free, (data[student][0], data[student2][0]))
+                    if (student.red_mobility and (student.id != student2.id)):
+                        problem.addConstraint(next_seat_free, (str(student), str(student2)))
                     
 
 def solver(problem: Problem):
