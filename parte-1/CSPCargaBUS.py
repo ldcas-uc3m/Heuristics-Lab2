@@ -143,10 +143,8 @@ def putVariables(data: tuple, problem: Problem):
     domain_blue = [i for i in range(1, 5)] + [i for i in range(13, 21)]
 
     for student in data:
-        print(str(student))
         if student.id_sibling != 0:
             sibling = data[student.id_sibling - 1]
-            print("Student " + str(student.id) + " has sibling " + str(sibling.id))
             if sibling.year != student.year:
                 domain = domain_front
             if sibling.red_mobility: 
@@ -161,6 +159,7 @@ def putVariables(data: tuple, problem: Problem):
                     domain = domain_front
                 case 2:
                     domain = domain_back
+
         if student.red_mobility:
             domain = domain_blue
             
@@ -191,16 +190,19 @@ def putConstraints(data: tuple, problem: Problem):
                         problem.addConstraint(next_seat_free, (str(student), str(student2)))
                     
 
-def solver(problem: Problem):
+def solver(problem: Problem, output_file_name: str):
+
     '''
-    Solves the problem and prints out the solutions
+    Solves the problem and writes out the solutions
     '''
-    sol = problem.getSolution()
+    sols = problem.getSolutions()
 
-    out_path = sys.argv[1].split("/")[-1] + ".out"
-    print("One solution:\n", sol)
-
-
+    with open(output_file_name, "w") as f:
+        f.write("Number of solutions: " + str(len(sols)) + "\n")
+        for i in range(0,3):
+            print(str(sols[i]) + "\n")
+            f.write(str(sols[i]) + "\n")
+        f.close()
 
 
 # ---
@@ -217,7 +219,9 @@ def main():
 
     putConstraints(data, problem)
 
-    solver(problem)
+    output_file_name = sys.argv[1] + ".out"
+
+    solver(problem, output_file_name)
 
 
 if __name__ == "__main__":
