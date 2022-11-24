@@ -1,12 +1,12 @@
 import sys
 from constraint import *
 
+DOMAIN = [i for i in range(1, 33)]
 
 class Student(object):
     '''
     Student definition
     '''
-
     def __init__(self, id, year, troublesome, red_mobility, id_sibling):
         self.id = id
 
@@ -149,12 +149,8 @@ def parser(path: str) -> tuple:
     data = []
     with open(path, "r") as f:
         for line in f:
-            identity = int(line.split(",")[0])
-            year = int(line.split(",")[1])
-            troublesome = line.split(",")[2]
-            red_mobility = line.split(",")[3]
-            id_sibling = int(line.split(",")[4])
-            data.append(Student(identity, year, troublesome, red_mobility, id_sibling))
+            student_data = line.split(",")
+            data.append(Student(int(student_data[0]), int(student_data[1]), student_data[2], student_data[3], int(student_data[4])))
     return tuple(data)
 
 
@@ -164,7 +160,7 @@ def putVariables(data: tuple, problem: Problem):
     '''
     for student in data:
         print(str(student))
-        problem.addVariable(str(student), range(1, 33))
+        problem.addVariable(str(student), DOMAIN)
 
 def putConstraints(data: tuple, problem: Problem):
     '''
@@ -175,6 +171,7 @@ def putConstraints(data: tuple, problem: Problem):
     
     for student in data:
         # First year students must use seats in the front of the bus
+    
         if student.year == 1:
             problem.addConstraint(in_front, str(student))
 
@@ -196,7 +193,6 @@ def putConstraints(data: tuple, problem: Problem):
                 # If there are students with reduced mobility, the seat right next to them has to be empty.
                 if student.red_mobility and (student.id != student2.id):
                     problem.addConstraint(next_seat_free, (str(student), str(student2)))
-
 
 
 def solver(problem: Problem):
