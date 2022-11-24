@@ -127,7 +127,7 @@ def in_back(s: int) -> bool:
     return s in range(17, 33)
 
 
-def in_blue(r: int) -> bool:
+def in_blue(s: int) -> bool:
     '''
     Check if the seat r is a blue seat (for students w/ reduced mobility)
     '''
@@ -222,7 +222,7 @@ def putConstraints(data: tuple, problem: Problem):
         
         # If two students are siblings they must be seated next to each other
         if (i.id_sibling != 0):
-            problem.addConstraint(are_adjacent, (str(i), str(data[id_sibling - 1])))
+            problem.addConstraint(are_adjacent, (str(i), str(data[i.id_sibling - 1])))
 
             for j in data:
 
