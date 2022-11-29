@@ -26,6 +26,7 @@ class Student(object):
 
         self.id_sibling = id_sibling
 
+
     def __str__(self):
         string = str(self.id)
 
@@ -59,14 +60,14 @@ def back_row(seat: int) -> bool:
 
 def are_adjacent(seat1: int, seat2: int) -> bool:
     '''
-    Returns True if seats a and b are adjacent, else False
+    Returns True if seat1 and seat2 are adjacent, else False
     '''
     return (abs(seat1 - seat2) == 1) and (((seat1 - 1) // 4) == ((seat2 - 1) // 4)) and ((seat1 % 4) * (seat2 % 4) != 6)
 
 
 def in_row(seat1: int, seat2: int) -> bool:
     '''
-    Returns True if a and b are in the same row, else False
+    Returns True if seat1 and seat2 are in the same row, else False
     '''
     return ((seat1 - 1) // 4) == ((seat2 - 1) // 4)
 
@@ -205,6 +206,7 @@ def putVariables(data: tuple, problem: Problem):
             domain = [seat for seat in domain if seat in domain_blue]
         
         problem.addVariable(str(student), domain)
+
 
 def putConstraints(data: tuple, problem: Problem):
     '''
