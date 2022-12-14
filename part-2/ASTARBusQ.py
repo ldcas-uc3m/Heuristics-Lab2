@@ -34,7 +34,6 @@ class Student():
         if self.red_mobility: string += "R"
         else: string += "X"
 
-        # return string + "-" + str(self.seat)
         return string
 
     def __repr__(self) -> str:
@@ -42,6 +41,9 @@ class Student():
 
     def __eq__(self, other: object) -> bool:
         return self.id == other.id
+
+    def __hash__(self) -> int:
+        return hash(self.id)
 
 
 class Node():
@@ -65,6 +67,9 @@ class Node():
 
     def __lt__(self, other: object) -> bool:
         return self.cost < other.cost
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.state))
 
 
     def updateCost(self):
@@ -127,90 +132,6 @@ class Node():
             descendant.append(newNode)
         
         return tuple(descendant)
-        
-
-def test_node_updateCost():
-    first_node = Node()
-
-    student1 = Student(1, "C", "X", 1)
-    student2 = Student(2, "X", "R", 2) 
-    student3 = Student(3, "X", "X", 3)
-    student4 = Student(4, "C", "X", 4)
-
-    state = [student1]
-    student_costs = [1]
-    first_node.state = state
-    first_node.student_costs = student_costs
-    first_node.updateCost()
-    assert first_node.cost == 1
-    assert first_node.student_costs == [1]
-    print(str(first_node))
-
-    state = [student1, student2]
-    student_costs = [1, 3]
-    first_node.state = state
-    first_node.student_costs = student_costs
-    first_node.updateCost()
-    assert first_node.cost == 7
-    assert first_node.student_costs == [1, 6]
-    print(str(first_node))
-
-    state = [student1, student2, student3]
-    student_costs = [1, 6, 1]
-    first_node.state = state
-    first_node.student_costs = student_costs
-    first_node.updateCost()
-    assert first_node.cost == 7
-    assert first_node.student_costs == [1, 0, 6]
-    print(str(first_node))
-
-
-    state = [student1, student2, student3, student4]
-    student_costs = [1, 0, 6, 1]
-    first_node.state = state
-    first_node.student_costs = student_costs
-    first_node.updateCost()
-    assert first_node.cost == 15
-    assert first_node.student_costs == [1, 0, 12, 2]
-    print(str(first_node))
-
-def test_node_descendants():
-    first_node = Node()
-
-    student1 = Student(1, "C", "X", 1)
-    student2 = Student(2, "X", "R", 2) 
-    student3 = Student(3, "X", "X", 3)
-    student4 = Student(4, "X", "R", 4)
-
-    student5 = Student(5, "X", "R", 5)
-    student6 = Student(6, "X", "X", 6)
-    student7 = Student(7, "C", "X", 7)
-    student8 = Student(8, "X", "X", 8)
-
-    state = [student1, student2, student3, student4]
-    student_costs = [1, 0, 6, 6]
-    first_node.state = state
-    first_node.student_costs = student_costs
-
-    data= (student5, student6, student7, student8)
-    descendants = first_node.descendants(data)
-
-    assert descendants[0].state == [student1, student2, student3, student4, student6]
-    assert descendants[0].student_costs == [1, 0, 6, 0, 6]
-    assert descendants[0].cost == 13
-
-    assert descendants[1].state == [student1, student2, student3, student4, student7]
-    assert descendants[1].student_costs == [1, 0, 6, 0, 12]
-    assert descendants[1].cost == 19
-
-    assert descendants[2].state == [student1, student2, student3, student4, student8]
-    assert descendants[2].student_costs == [1, 0, 6, 0, 6]
-    assert descendants[2].cost == 13
-    
-    print(descendants)
-
-
-   
 
 
 def h1(data: tuple, node: Node) -> int:
@@ -310,7 +231,7 @@ def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: in
     stats_file = ".".join(input_file.split(".")[:-1]) + "-h" + str(heuristic) + ".stat"
 
     with open(stats_file, "w") as f:
-        f.write("Total time: " + str(time) + "\n")
+        f.write("Total time: " + str(int(time * 1000)) + "\n")  # ms
         f.write("Total cost: " + str(solution.cost) + "\n")
         f.write("Plan length: " + str(len(solution.state) - 1) + "\n")
         f.write("Expanded nodes: " + str(expanded_nodes) + "\n")
@@ -329,7 +250,8 @@ def aStar(data: tuple, heuristic):
     closed = set()
 
     while (not open.empty()):
-        node = open.get()
+        node = open.get()[1]
+
         if node.isGoal(data):
             return node, expanded_nodes
         if node in closed:
@@ -353,9 +275,7 @@ def main():
     print("Reading", sys.argv[1], "\b...")
     PATH = sys.argv[1]
     data = parser(PATH)
-    heuristic = sys.argv[2]
-
-    
+    heuristic = int(sys.argv[2])
     
     if heuristic == 1: heuristic = h1
     if heuristic == 2: heuristic = h2
@@ -364,25 +284,11 @@ def main():
     solution, expanded_nodes = aStar(data, heuristic)
     toc = clock.perf_counter()
 
-    time = int(toc - tic)
-
-
-
+    time = toc - tic
 
     printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
-    
-    
-def test():
-    PATH = sys.argv[1]
-    solution = Node()
-    solution.state = [Student(69, "C", "R", 420)]
-    time = 1
-    expanded_nodes = 1
 
-    printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
 
 
 if __name__ == "__main__":
-    test_node_updateCost()
-    test_node_descendants()
-   # main()
+   main()
