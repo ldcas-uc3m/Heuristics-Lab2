@@ -42,14 +42,20 @@ class Student():
 
 
 class Node():
-
     def __init__(self, current_state: list = [], current_cost: int = 0, current_state_costs =[]):
         self.state = current_state
         self.cost = current_cost
         self.student_costs = current_state_costs
 
     def __str__(self) -> str:
-        return str(self.state) 
+        return str({
+            "state": self.state,
+            "cost": self.cost,
+            "student costs": self.student_costs
+        })
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def __eq__(self, other: object) -> bool:
         return self.state == other.state
@@ -57,29 +63,46 @@ class Node():
     def __lt__(self, other: object) -> bool:
         return self.cost < other.cost
 
-    def calculateCost(self):
-        new_cost = self.student_costs
-        for i in range(len(new_cost)):
+
+    def updateCost(self):
+        """
+        Update the cost of the node
+        """
+        if len(self.state) > 1: 
+            current_student = self.state[-1]
+            current_student_cost = self.student_costs[-1]
+
+            student_in_front = self.state[-2]
+            student_in_front_cost = self.student_costs[-2]
+
             # A student that is in the queue right behind a student with reduced mobility must help them get on the bus. Because of this, the time taken by the next student is the time of the reduced mobility student
-            if self.state[i].red_mobility:
-                new_cost[i+1] = new_cost[i]
-                new_cost[i] = 0
+            if student_in_front.red_mobility:
+                current_student_cost = student_in_front_cost
+                student_in_front_cost = 0
                 # if a troublesome student helps a student with reduced mobility enter the bus, the time taken by both of them would be double
-                if(self.state[i+1].troublesome):
-                    new_cost[i+1] *= 2
-            if new_cost[i].troublesome:
-                # A troublesome student will double the time the students in front and behind them take to enter the bus.
-                new_cost[i+1] *= 2
-                new_cost[i-1] *= 2
-                #A troublesome student will double the needed to enter the bus for ALL students that are behind him in the queue and have an assigned seat that is higher than his
-                for j in range(i+1, len(new_cost)):
-                    if self.state[j].seat > self.state[i].seat:
-                        new_cost[j] *= 2
-        total_cost = 0
-        for cost in new_cost:
-            #the total cost of the queue is the sum of the costs of each student
-            total_cost += cost
-        return total_cost
+                if(current_student.troublesome):
+                    current_student_cost *= 2
+            
+            # A troublesome student will double the time the students behind them take to enter the bus.
+            if student_in_front.troublesome:
+                current_student_cost *= 2
+
+            # A troublesome student will double the time the students in front of them take to enter the bus.
+            if current_student.troublesome:
+                student_in_front_cost *= 2
+        
+            # A troublesome student will double the time the students behind of them take to enter the bus if their seat is higher
+            for student in self.state:
+                if student.troublesome and not student_in_front.red_mobility and student.seat < current_student.seat:
+                    if student_in_front != student:
+                        current_student_cost *= 2
+
+            #Update the costs of the students
+            self.student_costs[-1] = current_student_cost
+            self.student_costs[-2] = student_in_front_cost
+            
+        # the total cost of the queue is the sum of the costs of each student
+        self.cost = sum(self.student_costs)
 
     def isGoal(self, data: dict):
         # the goal is reached when the queue is full and the last student in the queue is not a student with reduced mobility
@@ -91,19 +114,100 @@ class Node():
             # a student can be added to the queue if he is not already in the queue
             if student in self.state: continue
             # a student with reduced mobility can only be added to the queue if the last student in the queue is not a student with reduced mobility
-            if self.state[-1].red_mobility and student.red_mobility: continue
+            if len(self.state) > 0 and self.state[-1].red_mobility and student.red_mobility: continue
             # the cost of a regual student is 1 and a reduced mobility student is 3
             student_cost = 1
             if student.red_mobility: student_cost = 3
             # Create a new node with the new state, cost and state_costs and add it to the list of descendants
-            descendant.append(Node(self.state + [student], self.calculateCost(), self.student_costs + [student_cost]))
+            newNode = Node(self.state + [student], self.cost, self.student_costs + [student_cost])
+            newNode.updateCost()
+            descendant.append(newNode)
         
         return tuple(descendant)
         
 
+def test_node_updateCost():
+    first_node = Node()
+
+    student1 = Student(1, "C", "X", 1)
+    student2 = Student(2, "X", "R", 2) 
+    student3 = Student(3, "X", "X", 3)
+    student4 = Student(4, "C", "X", 4)
+
+    state = [student1]
+    student_costs = [1]
+    first_node.state = state
+    first_node.student_costs = student_costs
+    first_node.updateCost()
+    assert first_node.cost == 1
+    assert first_node.student_costs == [1]
+    print(str(first_node))
+
+    state = [student1, student2]
+    student_costs = [1, 3]
+    first_node.state = state
+    first_node.student_costs = student_costs
+    first_node.updateCost()
+    assert first_node.cost == 7
+    assert first_node.student_costs == [1, 6]
+    print(str(first_node))
+
+    state = [student1, student2, student3]
+    student_costs = [1, 6, 1]
+    first_node.state = state
+    first_node.student_costs = student_costs
+    first_node.updateCost()
+    assert first_node.cost == 7
+    assert first_node.student_costs == [1, 0, 6]
+    print(str(first_node))
+
+
+    state = [student1, student2, student3, student4]
+    student_costs = [1, 0, 6, 1]
+    first_node.state = state
+    first_node.student_costs = student_costs
+    first_node.updateCost()
+    assert first_node.cost == 15
+    assert first_node.student_costs == [1, 0, 12, 2]
+    print(str(first_node))
+
 def test_node_descendants():
     first_node = Node()
-    data = (Student(1, 1, "C", "X", 0, 1), Student(2, 1, "X", "X", 0, 2), Student(3, 1, "X", "R", 0, 3))
+
+    student1 = Student(1, "C", "X", 1)
+    student2 = Student(2, "X", "R", 2) 
+    student3 = Student(3, "X", "X", 3)
+    student4 = Student(4, "X", "R", 4)
+
+    student5 = Student(5, "X", "R", 5)
+    student6 = Student(6, "X", "X", 6)
+    student7 = Student(7, "C", "X", 7)
+    student8 = Student(8, "X", "X", 8)
+
+    state = [student1, student2, student3, student4]
+    student_costs = [1, 0, 6, 6]
+    first_node.state = state
+    first_node.student_costs = student_costs
+
+    data= (student5, student6, student7, student8)
+    descendants = first_node.descendants(data)
+
+    assert descendants[0].state == [student1, student2, student3, student4, student6]
+    assert descendants[0].student_costs == [1, 0, 6, 0, 6]
+    assert descendants[0].cost == 13
+
+    assert descendants[1].state == [student1, student2, student3, student4, student7]
+    assert descendants[1].student_costs == [1, 0, 6, 0, 12]
+    assert descendants[1].cost == 19
+
+    assert descendants[2].state == [student1, student2, student3, student4, student8]
+    assert descendants[2].student_costs == [1, 0, 6, 0, 6]
+    assert descendants[2].cost == 13
+    
+    print(descendants)
+
+
+   
 
 
 def h1(data: tuple, node: Node) -> int:
@@ -206,6 +310,8 @@ def main():
     PATH = sys.argv[1]
     data = parser(PATH)
     heuristic = sys.argv[2]
+
+    
     
     if heuristic == 1: heuristic = h1
     if heuristic == 2: heuristic = h2
@@ -215,6 +321,9 @@ def main():
     toc = clock.perf_counter()
 
     time = int(toc - tic)
+
+
+
 
     printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
     
@@ -230,5 +339,6 @@ def test():
 
 
 if __name__ == "__main__":
-    # test()
-    main()
+    test_node_updateCost()
+    test_node_descendants()
+   # main()
