@@ -40,6 +40,9 @@ class Student():
     def __repr__(self) -> str:
         return self.__str__()
 
+    def __eq__(self, other: object) -> bool:
+        return self.id == other.id
+
 
 class Node():
 
@@ -116,9 +119,50 @@ def h1(data: tuple, node: Node) -> int:
 
 def h2(data: tuple, node: Node) -> int:
     """
-    Heuristic 2: 
+    Heuristic 2: Best admissible approximation knowing the current
+    state and the students left
     """
-    pass
+
+    heuristic_cost = 0
+
+    # if the last student in the queue is a reduced mobility one, the cost will increase
+    # by at least 3
+    if node.state[-1].red_mobility:
+            heuristic_cost += 3
+
+    # search for future students
+    for student in data:
+        if student in node.state:
+            continue
+        
+        # each aditional student will add, at least, some extra cost
+        if student.troublesome:
+            heuristic_cost += 2
+
+        if student.red_mobility:
+            heuristic_cost += 3
+
+        if not student.troublesome and not student.red_mobility:  # regular student
+            heuristic_cost += 1
+
+    # A troublesome student will double the needed to enter the bus for 
+    # ALL students that are behind him in the queue and have an assigned 
+    # seat that is higher than his, best-case is 2 times its cost
+    for student in node.state:
+        if not student.troublesome: continue
+        for student2 in data:
+            if student == student2: continue
+            if student2.seat > student.seat:
+                if student2.troublesome:
+                    heuristic_cost += 2
+
+                if student2.red_mobility:
+                    heuristic_cost += 3
+
+                if not student2.troublesome and not student2.red_mobility:
+                    heuristic_cost += 1
+
+    return heuristic_cost
 
 
 def parser(input_file: str) -> tuple:
@@ -164,7 +208,7 @@ def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: in
     with open(stats_file, "w") as f:
         f.write("Total time: " + str(time) + "\n")
         f.write("Total cost: " + str(solution.cost) + "\n")
-        f.write("Plan length: " + str(len(solution.state)) + "\n")
+        f.write("Plan length: " + str(len(solution.state) - 1) + "\n")
         f.write("Expanded nodes: " + str(expanded_nodes) + "\n")
 
 
