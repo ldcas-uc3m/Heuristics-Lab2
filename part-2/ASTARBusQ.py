@@ -1,17 +1,15 @@
 import sys
-import json
 import queue
+import time as clock
 
 
-class Student(object):
+class Student():
     '''
     Student definition
     '''
-    def __init__(self, id, year, troublesome, red_mobility, id_sibling, seat):
+    def __init__(self, id: int, troublesome: str, red_mobility: str, seat: int):
+    
         self.id = id
-
-        if year not in (1, 2): raise ValueError
-        self.year = year
 
         if troublesome == "C":
             self.troublesome = True
@@ -25,10 +23,7 @@ class Student(object):
             self.red_mobility = False
         else: raise ValueError
 
-        self.id_sibling = id_sibling
-
         self.seat = seat
-
 
     def __str__(self):
         string = str(self.id)
@@ -39,7 +34,11 @@ class Student(object):
         if self.red_mobility: string += "R"
         else: string += "X"
 
+        # return string + "-" + str(self.seat)
         return string
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class Node():
@@ -100,28 +99,80 @@ class Node():
             descendant.append(Node(self.state + [student], self.calculateCost(), self.student_costs + [student_cost]))
         
         return tuple(descendant)
+        
 
 def test_node_descendants():
     first_node = Node()
     data = (Student(1, 1, "C", "X", 0, 1), Student(2, 1, "X", "X", 0, 2), Student(3, 1, "X", "R", 0, 3))
 
 
-def h1(node: Node) -> int:
+def h1(data: tuple, node: Node) -> int:
+    """
+    Heuristic 1: The cost of getting to the solution is the
+    number of students left to position in the queue
+    """
+    return len(data) - len(node.state)
+
+
+def h2(data: tuple, node: Node) -> int:
+    """
+    Heuristic 2: 
+    """
     pass
 
 
-def h2(node: Node) -> int:
-    pass
+def parser(input_file: str) -> tuple:
+
+    data = []
+
+    with open(input_file, "r") as f:
+        input = eval(f.read())  # dict
+
+    for student in input:
+        data.append(Student(student[0], student[1], student[2], input[student]))
+
+    return tuple(data)
 
 
-def parser(input_file: str) -> dict:
-    pass
+def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: int, heuristic):
+
+    # read initial state
+    with open(input_file, "r") as f:
+        input = eval(f.read())
+
+    # write solution file
+    solution_file = ".".join(input_file.split(".")[:-1]) + "-h" + str(heuristic) + ".output"
+
+    with open(solution_file, "w") as f:
+        
+        # write initial state
+        f.write("INITIAL: " + str(input) + "\n")
+        if solution is None:
+            print("No solution was found")
+            return
+
+        # parse solution
+        parsed_solution = {}
+        for student in solution.state:
+            parsed_solution[str(student)] = student.seat
+
+        f.write("FINAL: " + str(parsed_solution))
+
+    # write stats file
+    stats_file = ".".join(input_file.split(".")[:-1]) + "-h" + str(heuristic) + ".stat"
+
+    with open(stats_file, "w") as f:
+        f.write("Total time: " + str(time) + "\n")
+        f.write("Total cost: " + str(solution.cost) + "\n")
+        f.write("Plan length: " + str(len(solution.state)) + "\n")
+        f.write("Expanded nodes: " + str(expanded_nodes) + "\n")
 
 
+def aStar(data: tuple, heuristic):
+    expanded_nodes = 0  # expanded_nodes it takes to solve the problem
 
-def aStar(data: dict, heuristic: function):
     # list of nodes that have been visited but not all the neighbors inspected starting with the start node
-    open = queue.PriorityQueue
+    open = queue.PriorityQueue()
     start_node = Node()
 
     open.put((0, start_node))
@@ -132,7 +183,7 @@ def aStar(data: dict, heuristic: function):
     while (not open.empty()):
         node = open.get()
         if node.isGoal(data):
-            return node.cost
+            return node, expanded_nodes
         if node in closed:
             continue
         
@@ -140,26 +191,44 @@ def aStar(data: dict, heuristic: function):
 
         for child in children:
             # insert each child in order of f(child)
-            f = heuristic(child) + child.cost
+            f = heuristic(data, child) + child.cost
             open.put((f, child))
         
         closed.add(node)
 
-    return {}
+        expanded_nodes += 1
+
+    return None
 
 
 def main():
     print("Reading", sys.argv[1], "\b...")
-    data = parser(sys.argv[1])
+    PATH = sys.argv[1]
+    data = parser(PATH)
     heuristic = sys.argv[2]
     
     if heuristic == 1: heuristic = h1
     if heuristic == 2: heuristic = h2
 
-    aStar(data, heuristic)
+    tic = clock.perf_counter()
+    solution, expanded_nodes = aStar(data, heuristic)
+    toc = clock.perf_counter()
 
+    time = int(toc - tic)
+
+    printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
     
+    
+def test():
+    PATH = sys.argv[1]
+    solution = Node()
+    solution.state = [Student(69, "C", "R", 420)]
+    time = 1
+    expanded_nodes = 1
+
+    printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
 
 
 if __name__ == "__main__":
+    # test()
     main()
