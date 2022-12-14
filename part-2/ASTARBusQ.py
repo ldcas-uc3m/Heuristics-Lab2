@@ -1,5 +1,6 @@
 import sys
 import queue
+import time as clock
 
 
 class Student():
@@ -91,7 +92,7 @@ def parser(input_file: str) -> tuple:
     return tuple(data)
 
 
-def printSolution(input_file: str, solution: Node, time: int, heuristic):
+def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: int, heuristic):
 
     # read initial state
     with open(input_file, "r") as f:
@@ -122,14 +123,14 @@ def printSolution(input_file: str, solution: Node, time: int, heuristic):
         f.write("Total time: " + str(time) + "\n")
         f.write("Total cost: " + str(solution.cost) + "\n")
         f.write("Plan length: " + str(len(solution.state)) + "\n")
-        # f.write("Plan cost: " +  + "\n")
+        f.write("Expanded nodes: " + str(expanded_nodes) + "\n")
 
 
 def aStar(data: tuple, heuristic):
-    time = 0  # time it takes to solve the problem
+    expanded_nodes = 0  # expanded_nodes it takes to solve the problem
 
     # list of nodes that have been visited but not all the neighbors inspected starting with the start node
-    open = queue.PriorityQueue
+    open = queue.PriorityQueue()
     start_node = Node()
 
     open.put((0, start_node))
@@ -140,7 +141,7 @@ def aStar(data: tuple, heuristic):
     while (not open.empty()):
         node = open.get()
         if node.isGoal(data):
-            return node, time
+            return node, expanded_nodes
         if node in closed:
             continue
         
@@ -153,7 +154,7 @@ def aStar(data: tuple, heuristic):
         
         closed.add(node)
 
-        time += 1
+        expanded_nodes += 1
 
     return None
 
@@ -167,9 +168,13 @@ def main():
     if heuristic == 1: heuristic = h1
     if heuristic == 2: heuristic = h2
 
-    solution, time = aStar(data, heuristic)
+    tic = clock.perf_counter()
+    solution, expanded_nodes = aStar(data, heuristic)
+    toc = clock.perf_counter()
 
-    printSolution(PATH, solution, time, sys.argv[2])
+    time = int(toc - tic)
+
+    printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
     
     
 def test():
@@ -177,10 +182,11 @@ def test():
     solution = Node()
     solution.state = [Student(69, "C", "R", 420)]
     time = 1
+    expanded_nodes = 1
 
-    printSolution(PATH, solution, time, sys.argv[2])
+    printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
 
 
 if __name__ == "__main__":
-    # test()
-    main()
+    test()
+    # main()
