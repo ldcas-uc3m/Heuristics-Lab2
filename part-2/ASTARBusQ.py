@@ -63,11 +63,18 @@ class Node():
 
 
 
-def h1(node: Node) -> int:
-    pass
+def h1(data: tuple, node: Node) -> int:
+    """
+    Heuristic 1: The cost of getting to the solution is the
+    number of students left to position in the queue
+    """
+    return len(data) - len(node.state)
 
 
-def h2(node: Node) -> int:
+def h2(data: tuple, node: Node) -> int:
+    """
+    Heuristic 2: 
+    """
     pass
 
 
@@ -84,17 +91,16 @@ def parser(input_file: str) -> tuple:
     return tuple(data)
 
 
-def printSolution(input_file: str, solution: Node):
-
-    # compute output file path
-    output_file = ".".join(input_file.split(".")[:-1]) + ".output"
+def printSolution(input_file: str, solution: Node, time: int, heuristic):
 
     # read initial state
     with open(input_file, "r") as f:
         input = eval(f.read())
 
-    # write output file
-    with open(output_file, "w") as f:
+    # write solution file
+    solution_file = ".".join(input_file.split(".")[:-1]) + "-h" + str(heuristic) + ".output"
+
+    with open(solution_file, "w") as f:
         
         # write initial state
         f.write("INITIAL: " + str(input) + "\n")
@@ -109,10 +115,19 @@ def printSolution(input_file: str, solution: Node):
 
         f.write("FINAL: " + str(parsed_solution))
 
-    print("The cost was:", solution.cost)
+    # write stats file
+    stats_file = ".".join(input_file.split(".")[:-1]) + "-h" + str(heuristic) + ".stat"
+
+    with open(stats_file, "w") as f:
+        f.write("Total time: " + str(time) + "\n")
+        f.write("Total cost: " + str(solution.cost) + "\n")
+        f.write("Plan length: " + str(len(solution.state)) + "\n")
+        # f.write("Plan cost: " +  + "\n")
 
 
 def aStar(data: tuple, heuristic):
+    time = 0  # time it takes to solve the problem
+
     # list of nodes that have been visited but not all the neighbors inspected starting with the start node
     open = queue.PriorityQueue
     start_node = Node()
@@ -125,7 +140,7 @@ def aStar(data: tuple, heuristic):
     while (not open.empty()):
         node = open.get()
         if node.isGoal(data):
-            return node
+            return node, time
         if node in closed:
             continue
         
@@ -133,10 +148,12 @@ def aStar(data: tuple, heuristic):
 
         for child in children:
             # insert each child in order of f(child)
-            f = heuristic(child) + child.cost
+            f = heuristic(data, child) + child.cost
             open.put((f, child))
         
         closed.add(node)
+
+        time += 1
 
     return None
 
@@ -150,17 +167,19 @@ def main():
     if heuristic == 1: heuristic = h1
     if heuristic == 2: heuristic = h2
 
-    solution = aStar(data, heuristic)
+    solution, time = aStar(data, heuristic)
 
-    printSolution(data, solution, PATH)
+    printSolution(PATH, solution, time, sys.argv[2])
     
     
 def test():
     PATH = sys.argv[1]
     solution = Node()
     solution.state = [Student(69, "C", "R", 420)]
+    time = 1
 
-    printSolution(PATH, solution)
+    printSolution(PATH, solution, time, sys.argv[2])
+
 
 if __name__ == "__main__":
     # test()
