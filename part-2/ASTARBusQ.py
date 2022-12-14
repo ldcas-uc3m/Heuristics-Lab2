@@ -1,17 +1,13 @@
 import sys
-import json
 import queue
 
 
-class Student(object):
+class Student():
     '''
     Student definition
     '''
-    def __init__(self, id, year, troublesome, red_mobility, id_sibling):
+    def __init__(self, id: int, troublesome: str, red_mobility: str, seat: int):
         self.id = id
-
-        if year not in (1, 2): raise ValueError
-        self.year = year
 
         if troublesome == "C":
             self.troublesome = True
@@ -25,8 +21,7 @@ class Student(object):
             self.red_mobility = False
         else: raise ValueError
 
-        self.id_sibling = id_sibling
-
+        self.seat = seat
 
     def __str__(self):
         string = str(self.id)
@@ -37,7 +32,11 @@ class Student(object):
         if self.red_mobility: string += "R"
         else: string += "X"
 
+        # return string + "-" + str(self.seat)
         return string
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class Node():
@@ -53,10 +52,10 @@ class Node():
     def calculateCost():
         pass
 
-    def isGoal(data: dict):
+    def isGoal(data: tuple) -> int:
         pass
 
-    def descendants(data: dict) -> tuple:
+    def descendants(data: tuple) -> tuple:
         """
         Returns a tuple of nodes, with their cost calculated
         """
@@ -72,12 +71,48 @@ def h2(node: Node) -> int:
     pass
 
 
-def parser(input_file: str) -> dict:
-    pass
+def parser(input_file: str) -> tuple:
+
+    data = []
+
+    with open(input_file, "r") as f:
+        input = eval(f.read())  # dict
+
+    for student in input:
+        data.append(Student(student[0], student[1], student[2], input[student]))
+
+    return tuple(data)
 
 
+def printSolution(input_file: str, solution: Node):
 
-def aStar(data: dict, heuristic: function):
+    # compute output file path
+    output_file = ".".join(input_file.split(".")[:-1]) + ".output"
+
+    # read initial state
+    with open(input_file, "r") as f:
+        input = eval(f.read())
+
+    # write output file
+    with open(output_file, "w") as f:
+        
+        # write initial state
+        f.write("INITIAL: " + str(input) + "\n")
+        if solution is None:
+            print("No solution was found")
+            return
+
+        # parse solution
+        parsed_solution = {}
+        for student in solution.state:
+            parsed_solution[str(student)] = student.seat
+
+        f.write("FINAL: " + str(parsed_solution))
+
+    print("The cost was:", solution.cost)
+
+
+def aStar(data: tuple, heuristic):
     # list of nodes that have been visited but not all the neighbors inspected starting with the start node
     open = queue.PriorityQueue
     start_node = Node()
@@ -90,7 +125,7 @@ def aStar(data: dict, heuristic: function):
     while (not open.empty()):
         node = open.get()
         if node.isGoal(data):
-            return node.cost
+            return node
         if node in closed:
             continue
         
@@ -103,21 +138,30 @@ def aStar(data: dict, heuristic: function):
         
         closed.add(node)
 
-    return {}
+    return None
 
 
 def main():
     print("Reading", sys.argv[1], "\b...")
-    data = parser(sys.argv[1])
+    PATH = sys.argv[1]
+    data = parser(PATH)
     heuristic = sys.argv[2]
     
     if heuristic == 1: heuristic = h1
     if heuristic == 2: heuristic = h2
 
-    aStar(data, heuristic)
+    solution = aStar(data, heuristic)
 
+    printSolution(data, solution, PATH)
     
+    
+def test():
+    PATH = sys.argv[1]
+    solution = Node()
+    solution.state = [Student(69, "C", "R", 420)]
 
+    printSolution(PATH, solution)
 
 if __name__ == "__main__":
+    # test()
     main()
