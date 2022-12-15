@@ -89,12 +89,12 @@ class Node():
         return len(self.state) == len(data) and not self.state[-1].red_mobility
 
 
-    def descendants(self, data: tuple, heuristic) -> tuple:
+    def generateDescendants(self, data: tuple, heuristic) -> tuple:
         """
         Returns a tuple of the posible descendants (nodes) of the current node,
         given the data of the problem
         """
-        descendant = []
+        descendants = []
         for student in data:
             # a student can be added to the queue if he is not already in the queue
             if student in self.state: continue
@@ -106,9 +106,9 @@ class Node():
             # Create a new node with the new state, current cost and state_costs and add it to the list of descendants
             newNode = Node(self.state + [student], self.cost, self.student_costs + [student_cost])
             newNode.update(data, heuristic)
-            descendant.append(newNode)
+            descendants.append(newNode)
         
-        return tuple(descendant)
+        return tuple(descendants)
 
 
     def updateCost(self):
@@ -175,7 +175,7 @@ def h1(data: tuple, node: Node) -> int:
 def h2(data: tuple, node: Node) -> int:
     """
     Heuristic 2: Best admissible approximation knowing the current
-    state and the students left
+    state and the students left.
     """
 
     heuristic_cost = 0
@@ -192,17 +192,19 @@ def h2(data: tuple, node: Node) -> int:
         
         # each aditional student will add, at least, some extra cost
         if student.troublesome:
+            # worst-case: only one troublesome at the end, behind a regular student
             heuristic_cost += 2
 
         if student.red_mobility:
+            # worst-case: student next to it is a regular student
             heuristic_cost += 3
 
         if not student.troublesome and not student.red_mobility:  # regular student
             heuristic_cost += 1
 
     # A troublesome student will double the needed to enter the bus for 
-    # ALL students that are behind him in the queue and have an assigned 
-    # seat that is higher than his, best-case is 2 times its cost
+    # all students that are behind him in the queue and have an assigned 
+    # seat that is higher than his
     for student in node.state:
         if not student.troublesome: continue
         for student2 in data:
@@ -295,7 +297,7 @@ def aStar(data: tuple, heuristic):
             continue
         
         # expand node
-        children = node.descendants(data, heuristic)
+        children = node.generateDescendants(data, heuristic)
 
         for child in children:
             # insert each child in order of f(n)

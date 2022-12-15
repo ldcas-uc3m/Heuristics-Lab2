@@ -65,7 +65,7 @@ def test_node_descendants():
     first_node.student_costs = student_costs
 
     data= (student5, student6, student7, student8)
-    descendants = first_node.descendants(data)
+    descendants = first_node.generateDescendants(data)
 
     assert descendants[0].state == [student1, student2, student3, student4, student6]
     assert descendants[0].student_costs == [1, 0, 6, 0, 6]
