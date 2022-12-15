@@ -194,8 +194,8 @@ def h1(data: tuple, node: Node) -> int:
 
 def h2(data: tuple, node: Node) -> int:
     """
-    Heuristic 2: Best admissible approximation knowing the current
-    state and the students left.
+    Heuristic 2: Take reduced mobility and troublesome rules (except double the ones w/ higher seat)
+    with worst-case scenario
     """
 
     heuristic_cost = 0
@@ -212,32 +212,16 @@ def h2(data: tuple, node: Node) -> int:
         
         # each aditional student will add, at least, some extra cost
         if student.troublesome:
-            # worst-case: only one troublesome at the end, behind a regular student
-            heuristic_cost += 2
+            # worst-case: only one troublesome at the end, behind a regular student that is sitting
+            # behind a reduced mobility (so we don't double the cost)
+            heuristic_cost += 1
 
         if student.red_mobility:
-            # worst-case: student next to it is a regular student
+            # worst-case: student behind is a regular student
             heuristic_cost += 3
 
         if not student.troublesome and not student.red_mobility:  # regular student
             heuristic_cost += 1
-
-    # A troublesome student will double the needed to enter the bus for 
-    # all students that are behind him in the queue and have an assigned 
-    # seat that is higher than his
-    for student in node.state:
-        if not student.troublesome: continue
-        for student2 in data:
-            if student == student2: continue
-            if student2.seat > student.seat:
-                if student2.troublesome:
-                    heuristic_cost += 2
-
-                if student2.red_mobility:
-                    heuristic_cost += 3
-
-                if not student2.troublesome and not student2.red_mobility:
-                    heuristic_cost += 1
 
     return heuristic_cost
 
