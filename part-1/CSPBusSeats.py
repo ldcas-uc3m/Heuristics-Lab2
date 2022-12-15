@@ -203,7 +203,7 @@ def putVariables(data: tuple, problem: Problem):
             # must seat in the corresponding area (front or back), in the blue seats
             domain = [seat for seat in domain if seat in domain_blue]
         
-        # print(str(student), str(domain))
+        print(str(student), str(domain))
 
         problem.addVariable(str(student), domain)
 
@@ -230,8 +230,10 @@ def putConstraints(data: tuple, problem: Problem):
                 counted_siblings.add(str(sibling))
 
         for student2 in data:
-            # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility
+            # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility,
+            # except if they are siblings
             if (student.troublesome or student.red_mobility) and student2.troublesome:
+                if student.troublesome and student.id_sibling != 0 and data[student.id_sibling - 1].troublesome: break
                 problem.addConstraint(not_close, (str(student), str(student2)))
 
             # If there are students with reduced mobility, the seat right next to them has to be empty.
