@@ -184,7 +184,7 @@ def putVariables(data: tuple, problem: Problem):
                         domain = domain_front
                     case 2:
                         domain = domain_back
-            elif sibling.year != student.year:  # siblings in different years
+            if sibling.year != student.year:  # siblings in different years
                 # the older seats in the aisle
                 if student.year > sibling.year:
                     domain = domain_front_aisle
@@ -203,7 +203,7 @@ def putVariables(data: tuple, problem: Problem):
             # must seat in the corresponding area (front or back), in the blue seats
             domain = [seat for seat in domain if seat in domain_blue]
         
-        print(str(student), str(domain))
+        # print(str(student), str(domain))
 
         problem.addVariable(str(student), domain)
 
