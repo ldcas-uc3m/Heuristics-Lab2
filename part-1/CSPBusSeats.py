@@ -223,7 +223,7 @@ def putConstraints(data: tuple, problem: Problem):
         if (student.id_sibling != 0):
             sibling = data[student.id_sibling - 1]
             if str(sibling) not in counted_siblings:
-                if student.year != sibling.year and (sibling.red_mobility or student.red_mobility): break
+                if student.year != sibling.year or sibling.red_mobility or student.red_mobility: break
 
                 problem.addConstraint(are_adjacent, (str(student), str(sibling)))
                 
