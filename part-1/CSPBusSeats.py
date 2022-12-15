@@ -178,7 +178,13 @@ def putVariables(data: tuple, problem: Problem):
                         domain = domain_front
                     case 2:
                         domain = domain_back
-            elif sibling.year != student.year and not student.red_mobility:  # siblings in different years
+            elif student.red_mobility:
+                match student.year:
+                    case 1:
+                        domain = domain_front
+                    case 2:
+                        domain = domain_back
+            elif sibling.year != student.year:  # siblings in different years
                 # the older seats in the aisle
                 if student.year > sibling.year:
                     domain = domain_front_aisle
@@ -217,7 +223,7 @@ def putConstraints(data: tuple, problem: Problem):
         if (student.id_sibling != 0):
             sibling = data[student.id_sibling - 1]
             if str(sibling) not in counted_siblings:
-                if student.year != sibling.year and sibling.red_mobility: break
+                if student.year != sibling.year and (sibling.red_mobility or student.red_mobility): break
 
                 problem.addConstraint(are_adjacent, (str(student), str(sibling)))
                 
