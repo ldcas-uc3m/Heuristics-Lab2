@@ -1,52 +1,100 @@
 from ASTARBusQ import *
 
-def test_node_updateCost():
-    first_node = Node()
+def test_Node_updateCost():
+
+    # test 1
+    print("Node.updateCost() test 1")
+    node = Node()
 
     student1 = Student(1, "C", "X", 1)
     student2 = Student(2, "X", "R", 2) 
     student3 = Student(3, "X", "X", 3)
     student4 = Student(4, "C", "X", 4)
 
-    state = [student1]
-    student_costs = [1]
-    first_node.state = state
-    first_node.student_costs = student_costs
-    first_node.updateCost()
-    assert first_node.cost == 1
-    assert first_node.student_costs == [1]
-    print(str(first_node))
 
-    state = [student1, student2]
-    student_costs = [1, 3]
-    first_node.state = state
-    first_node.student_costs = student_costs
-    first_node.updateCost()
-    assert first_node.cost == 7
-    assert first_node.student_costs == [1, 6]
-    print(str(first_node))
-
-    state = [student1, student2, student3]
-    student_costs = [1, 6, 1]
-    first_node.state = state
-    first_node.student_costs = student_costs
-    first_node.updateCost()
-    assert first_node.cost == 7
-    assert first_node.student_costs == [1, 0, 6]
-    print(str(first_node))
+    node.state = [student1]
+    node.student_costs = [1]
+    
+    node.updateCost()
+    print(str(node))
+    
+    assert node.student_costs == [1]
+    assert node.cost == 1
 
 
-    state = [student1, student2, student3, student4]
-    student_costs = [1, 0, 6, 1]
-    first_node.state = state
-    first_node.student_costs = student_costs
-    first_node.updateCost()
-    assert first_node.cost == 15
-    assert first_node.student_costs == [1, 0, 12, 2]
-    print(str(first_node))
+    node.state = [student1, student2]
+    node.student_costs = [1, 0]
+    
+    node.updateCost()
+    print(str(node))
+    
+    assert node.student_costs == [1, 0]
+    assert node.cost == 1
 
 
-def test_node_descendants():
+    node.state = [student1, student2, student3]
+    node.student_costs = [1, 0, 1]
+    
+    node.updateCost()
+    print(str(node))
+    
+    assert node.student_costs == [1, 0, 12]
+    assert node.cost == 13
+
+
+    node.state = [student1, student2, student3, student4]
+    node.student_costs = [1, 0, 12, 1]
+    
+    node.updateCost()
+    print(str(node))
+
+    assert node.student_costs == [1, 0, 24, 2]
+    assert node.cost == 27
+    
+
+    # test 2
+    print("Node.updateCost() test 2")
+    node = Node()
+
+
+    student1 = Student(1, "C", "R", 20)
+    student2 = Student(2, "C", "X", 32) 
+    student3 = Student(3, "X", "X", 11)
+
+    node.state = [student1]
+    node.student_costs = [0]
+    
+    node.updateCost()
+    print(str(node))
+    
+    assert node.student_costs == [0]
+    assert node.cost == 0
+
+
+    node.state = [student1, student2]
+    node.student_costs = [0, 1]
+    
+    node.updateCost()
+    print(str(node))
+    
+    assert node.student_costs == [0, 6]
+    assert node.cost == 6
+
+
+    node.state = [student1, student2, student3]
+    node.student_costs = [0, 6, 1]
+    
+    node.updateCost()
+    print(str(node))
+    
+    assert node.student_costs == [0, 6, 2]
+    assert node.cost == 8
+
+
+
+def test_Node_generateDescendants():
+    print("Node.generateDescendants() test")
+    
     first_node = Node()
 
     student1 = Student(1, "C", "X", 1)
@@ -82,17 +130,20 @@ def test_node_descendants():
     print(descendants)
 
 
-def test_parsers():
-    PATH = sys.argv[1]
+def test_printSolution():
+    print("printSolution() test")
+
+    PATH = "ASTAR-tests/students1.prob"
     solution = Node()
     solution.state = [Student(69, "C", "R", 420)]
+    heuristic = 1
     time = 1
     expanded_nodes = 1
 
-    printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
+    printSolution(PATH, solution, time, time, expanded_nodes, heuristic)
 
 
 if __name__ == "__main__":
-    test_node_updateCost()
-    test_node_descendants()
-    test_parsers()
+    test_Node_updateCost()
+    test_Node_generateDescendants()
+    test_printSolution()

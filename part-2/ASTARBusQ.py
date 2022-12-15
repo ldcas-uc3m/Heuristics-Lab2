@@ -38,6 +38,7 @@ class Student():
         if self.red_mobility: string += "R"
         else: string += "X"
 
+        # return string + "-" + str(self.seat)
         return string
 
     def __repr__(self) -> str:
@@ -55,17 +56,20 @@ class Node():
     Search tree node definition
     """
 
-    def __init__(self, current_state: list = [], current_cost: int = 0, current_state_costs = []):
+    def __init__(self, current_state: list = [], current_cost: int = 0, current_student_costs = [], buffer: int = 0):
         self.state = current_state  # state of the queue
         self.cost = current_cost  # cost from start to node
-        self.student_costs = current_state_costs  # cost contribution of each individual student
+        self.student_costs = current_student_costs  # cost contribution of each individual student
         self.f = 0  # estimated cost from start to goal, through node
+
+        self.buffer = buffer  # buffered cost of the last reduced mobility student
 
     def __str__(self) -> str:
         return str({
             "state": self.state,
             "cost": self.cost,
-            "student costs": self.student_costs
+            "student costs": self.student_costs,
+            "buffer": self.buffer,
         })
 
     def __repr__(self) -> str:
@@ -102,9 +106,9 @@ class Node():
             if len(self.state) > 0 and self.state[-1].red_mobility and student.red_mobility: continue
             # the cost of a regual student is 1 and a reduced mobility student is 3
             student_cost = 1
-            if student.red_mobility: student_cost = 3
+            if student.red_mobility: student_cost = 0
             # Create a new node with the new state, current cost and state_costs and add it to the list of descendants
-            newNode = Node(self.state + [student], self.cost, self.student_costs + [student_cost])
+            newNode = Node(self.state + [student], self.cost, self.student_costs + [student_cost], self.buffer)
             newNode.update(data, heuristic)
             descendants.append(newNode)
         
@@ -115,38 +119,54 @@ class Node():
         """
         Update the cost of the state, taking into account a new student has been inserted
         """
-        if len(self.state) > 1: 
-            current_student = self.state[-1]
-            current_student_cost = self.student_costs[-1]
+        current_student = self.state[-1]
+        current_student_cost = self.student_costs[-1]
 
+        # we define the cost of a reduced mobility as 0,
+        # and the cost of the one behind him his "real" (or "buffered") cost
+        if current_student.red_mobility:
+            # allocate its real cost to the buffer
+            self.buffer = 3
+            
+        if len(self.state) > 1: 
+            
             student_in_front = self.state[-2]
             student_in_front_cost = self.student_costs[-2]
 
-            # A student that is in the queue right behind a student with reduced mobility must help them get on the bus. Because of this, the time taken by the next student is the time of the reduced mobility student
+            # A student that is in the queue right behind a student with reduced mobility must help them get on the bus. 
+            # Because of this, the time taken by the next student is the time of the reduced mobility student (stored in the buffer)
             if student_in_front.red_mobility:
-                current_student_cost = student_in_front_cost
-                student_in_front_cost = 0
-                # if a troublesome student helps a student with reduced mobility enter the bus, the time taken by both of them would be double
+                # unload buffer
+                current_student_cost = self.buffer
+                self.buffer = 0
+                # if a troublesome student helps a student with reduced mobility enter the bus,
+                # the time taken by both of them would be double
                 if(current_student.troublesome):
                     current_student_cost *= 2
             
-            # A troublesome student will double the time the students behind them take to enter the bus.
-            if student_in_front.troublesome:
+            # A troublesome student will double the time the students behind them take to enter the bus
+            if student_in_front.troublesome and not student_in_front.red_mobility:
                 current_student_cost *= 2
+                self.buffer *= 2
 
-            # A troublesome student will double the time the students in front of them take to enter the bus.
+            # A troublesome student will double the time the students in front of them take to enter the bus
             if current_student.troublesome:
                 student_in_front_cost *= 2
-        
+                self.buffer *= 2
+
             # A troublesome student will double the time the students behind of them take to enter the bus if their seat is higher
             for student in self.state:
-                if student.troublesome and not student_in_front.red_mobility and student.seat < current_student.seat:
-                    if student_in_front != student:
-                        current_student_cost *= 2
+                if current_student == student: continue
 
-            #Update the costs of the students
-            self.student_costs[-1] = current_student_cost
+                if student.troublesome and not student_in_front.red_mobility and student.seat < current_student.seat:
+                    current_student_cost *= 2
+                    self.buffer *= 2
+            
+            # Update the costs of the students
             self.student_costs[-2] = student_in_front_cost
+
+        # Update the costs of the  current student
+        self.student_costs[-1] = current_student_cost
             
         # the total cost of the queue is the sum of the costs of each student
         self.cost = sum(self.student_costs)
@@ -242,7 +262,7 @@ def parser(input_file: str) -> tuple:
     return tuple(data)
 
 
-def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: int, heuristic):
+def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: int, heuristic: int):
     """
     Print the solution and the stats to the files
     """
@@ -273,8 +293,10 @@ def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: in
     with open(stats_file, "w") as f:
         f.write("Total time: " + str(int(time * 1000)) + "\n")  # ms
         f.write("Total cost: " + str(solution.cost) + "\n")
-        f.write("Plan length: " + str(len(solution.state) - 1) + "\n")
+        f.write("Plan length: " + str(len(solution.state)) + "\n")
         f.write("Expanded nodes: " + str(expanded_nodes) + "\n")
+
+        # print(solution)
 
 
 def aStar(data: tuple, heuristic):
@@ -338,7 +360,7 @@ def main():
     else:
         print("Solution found!")
 
-    printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
+    printSolution(PATH, solution, time, expanded_nodes, h)
 
 
 
