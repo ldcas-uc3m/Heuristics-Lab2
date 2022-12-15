@@ -126,9 +126,9 @@ def not_close(s: int, t: int) -> bool:
 
 def next_seat_free(s: int, r: int) -> bool:
     '''
-    Check if seat s is empty next to seat t
+    Check if seat s is empty next to seat r
     '''
-    return not are_adjacent(r, s)
+    return not are_adjacent(s, r)
 
 
 
@@ -222,9 +222,9 @@ def putConstraints(data: tuple, problem: Problem):
         # If two students are siblings they must be seated next to each other
         if (student.id_sibling != 0):
             sibling = data[student.id_sibling - 1]
-            if str(sibling) not in counted_siblings:
-                # if either one of the siblings has reduced mob then they don't have to sit together
-                if sibling.red_mobility or student.red_mobility: break
+            # if either one of the siblings has reduced mob then they don't have to sit together
+            if str(sibling) not in counted_siblings and \
+                not (sibling.red_mobility or student.red_mobility):
 
                 problem.addConstraint(are_adjacent, (str(student), str(sibling)))
                 
@@ -232,13 +232,14 @@ def putConstraints(data: tuple, problem: Problem):
 
         for student2 in data:
             # Troublesome students cannot sit close to other troublesome students or to any student with reduced mobility,
-            # except if they are siblings
-            if (student.troublesome or student.red_mobility) and student2.troublesome:
-                if student.troublesome and student.id_sibling != 0 and data[student.id_sibling - 1].troublesome: break
+            # except if they are two troublesome siblings
+            if (student.troublesome or student.red_mobility) and student2.troublesome and \
+                not (student.troublesome and student.id_sibling != 0 and data[student.id_sibling - 1].troublesome): 
+                
                 problem.addConstraint(not_close, (str(student), str(student2)))
 
             # If there are students with reduced mobility, the seat right next to them has to be empty.
-            if (student.red_mobility and (student.id != student2.id)):
+            if student.red_mobility and (student.id != student2.id):
                 problem.addConstraint(next_seat_free, (str(student), str(student2)))
                 
 
