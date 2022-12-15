@@ -3,6 +3,10 @@ import queue
 import time as clock
 
 
+# --------
+# CLASSES
+# --------
+
 class Student():
     '''
     Student definition
@@ -25,7 +29,7 @@ class Student():
 
         self.seat = seat
 
-    def __str__(self):
+    def __str__(self) -> str:
         string = str(self.id)
 
         if self.troublesome: string += "C"
@@ -47,10 +51,15 @@ class Student():
 
 
 class Node():
-    def __init__(self, current_state: list = [], current_cost: int = 0, current_state_costs =[]):
-        self.state = current_state
-        self.cost = current_cost
-        self.student_costs = current_state_costs
+    """
+    Search tree node definition
+    """
+
+    def __init__(self, current_state: list = [], current_cost: int = 0, current_state_costs = []):
+        self.state = current_state  # state of the queue
+        self.cost = current_cost  # cost from start to node
+        self.student_costs = current_state_costs  # cost contribution of each individual student
+        self.f = 0  # estimated cost from start to goal, through node
 
     def __str__(self) -> str:
         return str({
@@ -66,15 +75,45 @@ class Node():
         return self.state == other.state
 
     def __lt__(self, other: object) -> bool:
-        return self.cost < other.cost
+        return self.f < other.f
 
     def __hash__(self) -> int:
         return hash(tuple(self.state))
 
 
+    def isGoal(self, data: dict) -> bool:
+        """
+        Check if the current state is a goal state
+        """
+        # the goal is reached when the queue is full and the last student in the queue is not a student with reduced mobility
+        return len(self.state) == len(data) and not self.state[-1].red_mobility
+
+
+    def descendants(self, data: tuple, heuristic) -> tuple:
+        """
+        Returns a tuple of the posible descendants (nodes) of the current node,
+        given the data of the problem
+        """
+        descendant = []
+        for student in data:
+            # a student can be added to the queue if he is not already in the queue
+            if student in self.state: continue
+            # a student with reduced mobility can only be added to the queue if the last student in the queue is not a student with reduced mobility
+            if len(self.state) > 0 and self.state[-1].red_mobility and student.red_mobility: continue
+            # the cost of a regual student is 1 and a reduced mobility student is 3
+            student_cost = 1
+            if student.red_mobility: student_cost = 3
+            # Create a new node with the new state, current cost and state_costs and add it to the list of descendants
+            newNode = Node(self.state + [student], self.cost, self.student_costs + [student_cost])
+            newNode.update(data, heuristic)
+            descendant.append(newNode)
+        
+        return tuple(descendant)
+
+
     def updateCost(self):
         """
-        Update the cost of the node
+        Update the cost of the state, taking into account a new student has been inserted
         """
         if len(self.state) > 1: 
             current_student = self.state[-1]
@@ -112,27 +151,18 @@ class Node():
         # the total cost of the queue is the sum of the costs of each student
         self.cost = sum(self.student_costs)
 
-    def isGoal(self, data: dict):
-        # the goal is reached when the queue is full and the last student in the queue is not a student with reduced mobility
-        return len(self.state) == len(data) and not self.state[-1].red_mobility
 
-    def descendants(self, data: tuple) -> tuple:
-        descendant = []
-        for student in data:
-            # a student can be added to the queue if he is not already in the queue
-            if student in self.state: continue
-            # a student with reduced mobility can only be added to the queue if the last student in the queue is not a student with reduced mobility
-            if len(self.state) > 0 and self.state[-1].red_mobility and student.red_mobility: continue
-            # the cost of a regual student is 1 and a reduced mobility student is 3
-            student_cost = 1
-            if student.red_mobility: student_cost = 3
-            # Create a new node with the new state, cost and state_costs and add it to the list of descendants
-            newNode = Node(self.state + [student], self.cost, self.student_costs + [student_cost])
-            newNode.updateCost()
-            descendant.append(newNode)
-        
-        return tuple(descendant)
+    def update(self, data, heuristic):
+        """
+        Update the node, taking into account a new student has been inserted
+        """
+        self.updateCost()
+        self.f = heuristic(data, self) + self.cost
 
+
+# --------
+# HEURISTICS
+# --------
 
 def h1(data: tuple, node: Node) -> int:
     """
@@ -190,7 +220,14 @@ def h2(data: tuple, node: Node) -> int:
     return heuristic_cost
 
 
+# --------
+# FUNCTIONS
+# --------
+
 def parser(input_file: str) -> tuple:
+    """
+    Parse the input file and create the problem data tuple
+    """
 
     data = []
 
@@ -204,7 +241,9 @@ def parser(input_file: str) -> tuple:
 
 
 def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: int, heuristic):
-
+    """
+    Print the solution and the stats to the files
+    """
     # read initial state
     with open(input_file, "r") as f:
         input = eval(f.read())
@@ -217,7 +256,6 @@ def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: in
         # write initial state
         f.write("INITIAL: " + str(input) + "\n")
         if solution is None:
-            print("No solution was found")
             return
 
         # parse solution
@@ -225,7 +263,7 @@ def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: in
         for student in solution.state:
             parsed_solution[str(student)] = student.seat
 
-        f.write("FINAL: " + str(parsed_solution))
+        f.write("FINAL:   " + str(parsed_solution))
 
     # write stats file
     stats_file = ".".join(input_file.split(".")[:-1]) + "-h" + str(heuristic) + ".stat"
@@ -238,53 +276,65 @@ def printSolution(input_file: str, solution: Node, time: int, expanded_nodes: in
 
 
 def aStar(data: tuple, heuristic):
-    expanded_nodes = 0  # expanded_nodes it takes to solve the problem
 
-    # list of nodes that have been visited but not all the neighbors inspected starting with the start node
-    open = queue.PriorityQueue()
+    open = queue.PriorityQueue()  # list of nodes that have been visited but not expanded
+
+    # set initial node
     start_node = Node()
+    open.put(start_node)
 
-    open.put((0, start_node))
-
-    # list of nodes that have been visited and the neighbors have also been inspected
-    closed = set()
+    closed = set()  # set of expanded nodes
 
     while (not open.empty()):
-        node = open.get()[1]
+        # get the best node according to f(n)
+        node = open.get()
 
         if node.isGoal(data):
-            return node, expanded_nodes
+            return node, len(closed)  # solution found
         if node in closed:
             continue
         
-        children = node.descendants(data)
+        # expand node
+        children = node.descendants(data, heuristic)
 
         for child in children:
-            # insert each child in order of f(child)
-            f = heuristic(data, child) + child.cost
-            open.put((f, child))
+            # insert each child in order of f(n)
+            open.put(child)
         
+        # close node
         closed.add(node)
 
-        expanded_nodes += 1
+    return None  # no solution found
 
-    return None
 
+# --------
+# MAIN
+# --------
 
 def main():
+
+    # read and parse arguments
     print("Reading", sys.argv[1], "\b...")
     PATH = sys.argv[1]
     data = parser(PATH)
-    heuristic = int(sys.argv[2])
+    h = int(sys.argv[2])
     
-    if heuristic == 1: heuristic = h1
-    if heuristic == 2: heuristic = h2
+    if h == 1: heuristic = h1
+    if h == 2: heuristic = h2
 
+    # solve the problem
+    print("Finding solution using heuristic", h,"\b...")
     tic = clock.perf_counter()
     solution, expanded_nodes = aStar(data, heuristic)
     toc = clock.perf_counter()
 
     time = toc - tic
+
+    # print the solution
+    if solution is None:
+        print("Solution not found!")
+    else:
+        print("Solution found!")
 
     printSolution(PATH, solution, time, expanded_nodes, sys.argv[2])
 
