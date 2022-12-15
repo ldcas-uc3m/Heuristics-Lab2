@@ -131,15 +131,6 @@ def next_seat_free(s: int, r: int) -> bool:
     return not are_adjacent(r, s)
 
 
-def in_aisle(s: int, t: int) -> bool:
-    '''
-    Check if seat s is in the aisle
-    '''
-    # For some weird f*ing reason, if it doesn't have two parameters,
-    #  it doesn't work when adding constraints
-    return (s - 1) % 4 in (1, 2)
-
-
 
 # ---
 # MAIN FUNCTIONS
@@ -174,13 +165,12 @@ def putVariables(data: tuple, problem: Problem):
     domain_front = [i for i in range(1, 17)]
     domain_back = [i for i in range(17, 33)]
     domain_blue = [i for i in range(1, 5)] + [i for i in range(13, 21)]
+    domain_front_aisle = [i for i in domain_front if (i - 1) % 4 in (1, 2)]
 
     for student in data:
         # siblings
-        if student.id_sibling != 0: 
+        if student.id_sibling != 0:
             sibling = data[student.id_sibling - 1]
-            if sibling.year != student.year:  # siblings in different years
-                domain = domain_front
             if sibling.red_mobility:
                 # the other sibling must seat in the same area (front or back)
                 match sibling.year:
@@ -188,6 +178,12 @@ def putVariables(data: tuple, problem: Problem):
                         domain = domain_front
                     case 2:
                         domain = domain_back
+            elif sibling.year != student.year and not student.red_mobility:  # siblings in different years
+                # the older seats in the aisle
+                if student.year > sibling.year:
+                    domain = domain_front_aisle
+                else:
+                    domain = domain_front
         # years
         else:
             match student.year:
@@ -201,6 +197,8 @@ def putVariables(data: tuple, problem: Problem):
             # must seat in the corresponding area (front or back), in the blue seats
             domain = [seat for seat in domain if seat in domain_blue]
         
+        # print(str(student), str(domain))
+
         problem.addVariable(str(student), domain)
 
 
@@ -219,13 +217,9 @@ def putConstraints(data: tuple, problem: Problem):
         if (student.id_sibling != 0):
             sibling = data[student.id_sibling - 1]
             if str(sibling) not in counted_siblings:
-                problem.addConstraint(are_adjacent, (str(student), str(sibling)))
+                if student.year != sibling.year and sibling.red_mobility: break
 
-                # If siblings are on different years, the older brother has to be assigned the seat closer to the aisle.
-                if student.year > sibling.year:
-                    problem.addConstraint(in_aisle, (str(student), str(sibling)))
-                elif student.year < sibling.year:
-                    problem.addConstraint(in_aisle, (str(sibling), str(student)))
+                problem.addConstraint(are_adjacent, (str(student), str(sibling)))
                 
                 counted_siblings.add(str(sibling))
 
@@ -244,6 +238,10 @@ def solver(problem: Problem, output_file_name: str):
     Solves the problem and writes out the solutions
     '''
     sols = problem.getSolutions()
+
+    if sols == []:
+        print("No solution found!")
+        return
 
     with open(output_file_name, "w") as f:
         f.write("Number of solutions: " + str(len(sols)) + "\n")
@@ -269,7 +267,7 @@ def main():
     print("Adding constraints...")
     putConstraints(data, problem)
 
-    output_file_name = sys.argv[1] + ".out"
+    output_file_name = sys.argv[1] + ".output"
 
     print("Getting solutions...")
     solver(problem, output_file_name)
