@@ -1,1 +1,11 @@
 python CSPBusSeats.py ./CSP-tests/students1
+python CSPBusSeats.py ./CSP-tests/students2
+python CSPBusSeats.py ./CSP-tests/students3
+python CSPBusSeats.py ./CSP-tests/students4
+python CSPBusSeats.py ./CSP-tests/students5
+python CSPBusSeats.py ./CSP-tests/students6
+python CSPBusSeats.py ./CSP-tests/students7
+python CSPBusSeats.py ./CSP-tests/students8
+python CSPBusSeats.py ./CSP-tests/students9
+python CSPBusSeats.py ./CSP-tests/students10
+python CSPBusSeats.py ./CSP-tests/students11

@@ -169,7 +169,7 @@ def putVariables(data: tuple, problem: Problem):
 
     for student in data:
         # siblings
-        if student.id_sibling != 0:
+        if student.id_sibling != 0: 
             sibling = data[student.id_sibling - 1]
             if sibling.red_mobility:
                 # the other sibling must seat in the same area (front or back)
@@ -227,7 +227,7 @@ def putConstraints(data: tuple, problem: Problem):
                 not (sibling.red_mobility or student.red_mobility):
 
                 problem.addConstraint(are_adjacent, (str(student), str(sibling)))
-                
+
                 counted_siblings.add(str(sibling))
 
         for student2 in data:
@@ -258,7 +258,7 @@ def solver(problem: Problem, output_file_name: str):
         for i in range(0,3):
             f.write(str(sols[i]) + "\n")
         f.close()
-
+    
 
 # ---
 # MAIN
