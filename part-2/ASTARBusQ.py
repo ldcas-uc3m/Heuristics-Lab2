@@ -203,7 +203,7 @@ def h2(data: tuple, node: Node) -> int:
     # if the last student in the queue is a reduced mobility one, the cost will increase
     # by at least 3
     if node.state[-1].red_mobility:
-            heuristic_cost += 3
+        heuristic_cost += 3
 
     # search for future students
     for student in data:
@@ -214,7 +214,7 @@ def h2(data: tuple, node: Node) -> int:
         if student.troublesome:
             # worst-case: only one troublesome at the end, behind a regular student that is sitting
             # behind a reduced mobility (so we don't double the cost)
-            heuristic_cost += 1
+            heuristic_cost += 2
 
         if student.red_mobility:
             # worst-case: student behind is a regular student
