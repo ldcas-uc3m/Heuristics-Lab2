@@ -8,6 +8,7 @@ Universidad Carlos III de Madrid
 The school management board is so pleased with the work we did when designing the bus routes they decided to continue our business relation. Now they want us to assign a specific seat for each student in the school buses.  
 
 The arrangement of seats in said buses can bee seen in the following image:  
+![bus seats](img/bus.png)
 
 The table has a color scheme that describes the following properties of each space:
 - The seats are numbered (from 1 to 32).
